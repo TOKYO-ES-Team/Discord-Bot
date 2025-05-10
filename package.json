@@ -1,0 +1,19 @@
+{
+  "name": "tokyo-es-bot",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.5.0",
+    "node-fetch": "^2.7.0"
+  }
+}
