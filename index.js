@@ -16,7 +16,7 @@ let previousControllers = new Map();
 // Function to fetch and process VATSIM data
 async function fetchVatsimData() {
     try {
-        const response = await fetch("https://data.airwaysn.org/v1/data.json");
+        const response = await fetch("https://data.vatsim.net/v3/vatsim-data.json");
         const data = await response.json();
         
         // Filter controllers with RJ or RO callsigns
