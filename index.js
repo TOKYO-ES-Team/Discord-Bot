@@ -31,9 +31,12 @@ async function fetchVatsimData() {
         // Create a new map of current controllers
         const currentControllers = new Map(japanControllers.map(c => [c.callsign, c]));
 
-        // Check for new controllers
+        // Check for new controllers and frequency changes
         for (const controller of japanControllers) {
-            if (!previousControllers.has(controller.callsign)) {
+            const existingController = previousControllers.get(controller.callsign);
+            
+            if (!existingController) {
+                // New controller
                 const embed = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setTitle('Controller Online')
@@ -57,6 +60,38 @@ async function fetchVatsimData() {
 
                 const message = await channel.send({ embeds: [embed] });
                 previousControllers.set(controller.callsign, { messageId: message.id, controller });
+            } else if (existingController.controller.frequency !== controller.frequency) {
+                // Frequency changed
+                try {
+                    const message = await channel.messages.fetch(existingController.messageId);
+                    if (message) {
+                        const embed = new EmbedBuilder()
+                            .setColor('#0099ff')
+                            .setTitle('Controller Online')
+                            .addFields(
+                                { name: 'Callsign', value: controller.callsign, inline: true },
+                                { name: 'Name', value: controller.name, inline: true },
+                                { name: 'Frequency', value: controller.frequency, inline: true },
+                                { name: 'Facility', value: getFacilityName(controller.facility), inline: true },
+                                { name: 'Logon Time', value: new Date(controller.logon_time).toLocaleString('en-US', { 
+                                    timeZone: 'Asia/Tokyo',
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3/$1/$2').replace(',', ''), inline: true }
+                            )
+                            .setTimestamp();
+
+                        await message.edit({ embeds: [embed] });
+                        previousControllers.set(controller.callsign, { messageId: existingController.messageId, controller });
+                    }
+                } catch (error) {
+                    console.error(`Error updating message for ${controller.callsign}:`, error);
+                }
             }
         }
 
