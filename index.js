@@ -101,31 +101,10 @@ async function fetchVatsimData() {
                 try {
                     const message = await channel.messages.fetch(data.messageId);
                     if (message) {
-                        const offlineEmbed = new EmbedBuilder()
-                            .setColor('#ff0000')
-                            .setTitle('Controller Offline')
-                            .addFields(
-                                { name: 'Callsign', value: callsign, inline: true },
-                                { name: 'Name', value: data.controller.name, inline: true },
-                                { name: 'Last Facility', value: getFacilityName(data.controller.facility), inline: true },
-                                { name: 'Last Frequency', value: data.controller.frequency, inline: true },
-                                { name: 'Logon Time', value: new Date(data.controller.logon_time).toLocaleString('en-US', { 
-                                    timeZone: 'Asia/Tokyo',
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    hour12: false
-                                }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3/$1/$2').replace(',', ''), inline: true }
-                            )
-                            .setTimestamp();
-
-                        await message.edit({ embeds: [offlineEmbed] });
+                        await message.delete();
                     }
                 } catch (error) {
-                    console.error(`Error editing message for ${callsign}:`, error);
+                    console.error(`Error deleting message for ${callsign}:`, error);
                 }
                 previousControllers.delete(callsign);
             }
@@ -164,8 +143,45 @@ function getRatingName(rating) {
 }
 
 // When the client is ready, run this code (only once)
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async readyClient => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+    
+    // Check if the channel exists
+    try {
+        const channel = await client.channels.fetch(process.env.DISCORD_ATC_UPDATE);
+        if (!channel) {
+            console.error('Error: ATC update channel not found! Please check your DISCORD_ATC_UPDATE environment variable.');
+            return;
+        }
+        console.log(`ATC update channel found: ${channel.name}`);
+
+        // Clean up existing messages
+        try {
+            const messages = await channel.messages.fetch({ limit: 100 });
+            if (messages.size > 0) {
+                console.log(`Found ${messages.size} messages in the channel, checking for messages to delete...`);
+                
+                // Filter messages that are less than 14 days old
+                const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                const messagesToDelete = messages.filter(msg => msg.createdTimestamp > twoWeeksAgo);
+                
+                if (messagesToDelete.size > 0) {
+                    console.log(`Deleting ${messagesToDelete.size} messages that are less than 14 days old...`);
+                    await channel.bulkDelete(messagesToDelete);
+                    console.log('Successfully cleaned up recent messages');
+                } else {
+                    console.log('No messages found that are less than 14 days old');
+                }
+            } else {
+                console.log('No existing messages found in the channel');
+            }
+        } catch (error) {
+            console.error('Error cleaning up messages:', error);
+        }
+    } catch (error) {
+        console.error('Error checking ATC update channel:', error);
+        return;
+    }
     
     // Start fetching VATSIM data every 10 seconds
     setInterval(fetchVatsimData, 10000);

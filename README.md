@@ -14,4 +14,11 @@
 2. `pnpm i`
 3. commit
 
+## Environment Variables
+
+```env
+DISCORD_TOKEN=
+DISCORD_ATC_UPDATE=
+
 **After commit to this repo, it will automatic deploy on [Janyue Aosugi's Server](https://github.com/jhl-hk)**
+```
